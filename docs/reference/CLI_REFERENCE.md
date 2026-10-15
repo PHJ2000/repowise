@@ -1118,6 +1118,8 @@ Report per-file code-health scores from 51 deterministic detectors (McCabe compl
 
 By default it reads the analysis the last `repowise init` or `repowise update` stored, the same rows MCP and the web UI serve, and writes nothing. `--recompute` analyzes the working tree in-process instead.
 
+When a listed finding or plan sits on a language its layer serves as a preview, the report prints one dim line per layer and language with the measurement behind it, for example `Refactoring on Java: preview, measured 22% precision on 55 judged plans from 2 Java repos, 2026-10-15`. `repowise dead-code` does the same. Today that is health on C++, and refactoring, performance and dead code on Java, C#, C and C++ (dead code on Kotlin and Swift too); no language is held back.
+
 **Options:**
 
 | Flag | Description |
@@ -1648,13 +1650,13 @@ Teams that already run OPA can use the `evidence` object of `repowise check --fo
 
 ### `repowise events`
 
-Typed events between consecutive index runs. Each `init` and `update` stores a snapshot of every component (ownership counts, bus factor, hotspots, dead code, governing decisions, provided contracts, test reach, attribution with coverage) under the analyzer and parser stamp it ran with. When an index run and the run right before it share a stamp, what moved is stored as an event. A stamp change starts a new baseline, and so does the first run after one that took no snapshot (events switched off, or the snapshot failed); a run on the commit already snapshotted, including `--working-tree` on it, is skipped. Events are written as CloudEvents JSON lines to `.repowise/events.jsonl` and read back here, oldest first.
+Typed events between consecutive index runs. Each `init` and `update` stores a snapshot of every component (ownership counts, bus factor, hotspots, dead code, governing decisions, provided contracts, test reach) under the analyzer and parser stamp it ran with. When an index run and the run right before it share a stamp, what moved is stored as an event. A stamp change starts a new baseline, and so does the first run after one that took no snapshot (events switched off, or the snapshot failed); a run on the commit already snapshotted, including `--working-tree` on it, is skipped. Events are written as CloudEvents JSON lines to `.repowise/events.jsonl` and read back here, oldest first.
 
 ```bash
 repowise events [--path PATH] [--since 7d|12h|ISO-DATE] [--kind KIND]... [--limit N] [--format table|json|jsonl]
 ```
 
-Kinds: `ownership_shift`, `owner_inactive`, `bus_factor_drop` (critical components), `new_hotspot` (off by default), `contract_added`, `contract_broken`, `decision_stale`, `dead_code_growth`, `test_reach_drop`, `attribution_jump` (regulated components). The `events:` block in `.repowise/config.yaml` sets `enabled`, `retention_days` (365), `compact_after_days` (30; older runs keep one per week), per-kind switches under `kinds`, and the `sinks` to deliver to (`jsonl` by default, `stdout` for CI).
+Kinds: `ownership_shift`, `owner_inactive`, `bus_factor_drop` (critical components), `new_hotspot` (off by default), `contract_added`, `contract_broken`, `decision_stale`, `dead_code_growth`, `test_reach_drop`. Contract kinds need a workspace: after the cross-repo pass extracts contracts at the run's commit, the run's contract facts are measured and its contract events stored; outside a workspace contracts stay unavailable and those kinds never fire. An index-only `update` (the post-commit hook) skips the cross-repo pass to stay fast, so its run keeps contracts unavailable; contract kinds compare each measured run with the last earlier run that measured them, passing over those runs. Known limit: consumer counts are read at the provider's own runs, so a change in a consumer repo alone moves no contract event. Known limit: past `compact_after_days` compaction keeps one run per week, so the measured run a later run would compare with can be dropped, and the comparison falls back to an older measured run or none. The `events:` block in `.repowise/config.yaml` sets `enabled`, `retention_days` (365), `compact_after_days` (30; older runs keep one per week), per-kind switches under `kinds`, and the `sinks` to deliver to (`jsonl` by default, `stdout` for CI).
 
 The web UI lists the same events on the repository's Events page, newest first. An empty list says why: `GET /api/repos/{id}/events` returns `snapshot_runs` and `empty_reason` (`baseline_only` until two snapshots exist, `nothing_moved`, or `no_match` under filters), and the same sentence this command prints as `empty_note`.
 
@@ -2279,7 +2281,7 @@ version as seen. Works offline from the changelog bundled with the install.
 | `--all` | Show the full changelog history |
 | `--format` | `table` (default) or `json` |
 
-JSON carries every selected release; the panel caps at 5 releases and 8 bullets each.
+Each release leads with its highlights and a one-line "By the numbers" (pull requests, contributors, files and lines changed). JSON carries every selected release with its `summary`, `highlights` and `stats`; the panel caps at 5 releases and 8 bullets each.
 
 ```bash
 repowise whats-new                       # what changed since you last looked
