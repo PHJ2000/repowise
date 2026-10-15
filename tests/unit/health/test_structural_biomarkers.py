@@ -8,7 +8,7 @@ from repowise.core.analysis.health.biomarkers.large_method import LargeMethodDet
 from repowise.core.analysis.health.biomarkers.primitive_obsession import (
     PrimitiveObsessionDetector,
 )
-from repowise.core.analysis.health.complexity import FunctionComplexity
+from repowise.core.analysis.health.complexity import FunctionComplexity, walk_file
 
 
 def _ctx(fns: list[FunctionComplexity]) -> FileContext:
@@ -80,6 +80,25 @@ def test_primitive_obsession_flags_wide_signature():
     out = PrimitiveObsessionDetector().detect(_ctx([fn, _FILLER]))
     assert len(out) == 1
     assert out[0].details["param_count"] == 7
+
+
+def test_primitive_obsession_finds_cpp_scalar_signature():
+    source = (
+        "int f(int a, int b, int c, int d, int e, int g, int h) {\n"
+        + "\n".join(f"    a += {i};" for i in range(61))
+        + "\n    return a;\n}\n"
+    )
+    walked = walk_file("a.cpp", "cpp", source.encode())
+    assert walked.file_nloc > 60
+    ctx = FileContext(
+        file_path="a.cpp", language="cpp", nloc=walked.file_nloc,
+        has_test_file=False, module=None, all_functions=tuple(walked.functions),
+    )
+    (finding,) = PrimitiveObsessionDetector().detect(ctx)
+    assert finding.function_name == "f"
+    assert finding.details == {
+        "param_count": 7, "typed_param_count": 7, "primitive_param_count": 7,
+    }
 
 
 def test_primitive_obsession_grace_for_constructors():

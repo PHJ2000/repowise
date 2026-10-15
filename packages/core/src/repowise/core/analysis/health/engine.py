@@ -115,7 +115,11 @@ log = structlog.get_logger(__name__)
 # Not a licence to move a calibrated scoring weight — those are frozen
 # independently of this stamp.
 #
-# Current stamp (v40): an Extract Method plan names its helper with a placeholder
+# Current stamp (v41): parameter counts exclude every comment kind and discover
+# C/C++ declarators and Kotlin lists. Cached walks must refresh the total,
+# typed and scalar counts, enabling primitive_obsession in those languages.
+#
+# v40: an Extract Method plan names its helper with a placeholder
 # (``extracted_helper``, numbered when taken in scope) and asks the agent applying
 # it to rename it, so every stored plan's ``suggested_name``, header and call text
 # change. Plan ids do not depend on the name and hold.
@@ -401,7 +405,7 @@ log = structlog.get_logger(__name__)
 # forms. Files that were counted untested and are not become tested, which
 # moves untested-hotspot findings and the scores that carry them, on every
 # language with a prefix or spec convention rather than Ruby alone.
-HEALTH_ANALYZER_VERSION = 40
+HEALTH_ANALYZER_VERSION = 41
 
 
 #: Function facts a finding inside the function carries in its details.

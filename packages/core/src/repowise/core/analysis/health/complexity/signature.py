@@ -23,6 +23,8 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
+from .ast_utils import _parameter_nodes
+
 if TYPE_CHECKING:
     from tree_sitter import Node
 
@@ -59,7 +61,7 @@ _TYPE_PUNCT_RE = re.compile(r"[*&?|\[\]]|'\w+")
 # Nodes of a parameter list that are not parameters, as ``_count_parameters``
 # skips them.
 _NON_PARAMS = frozenset(
-    {"comment", "keyword_separator", "positional_separator", "self_parameter"}
+    {"keyword_separator", "positional_separator", "self_parameter"}
 )
 
 
@@ -192,7 +194,7 @@ def typed_param_counts(params: Node | None, lmap: LanguageNodeMap) -> tuple[int,
     typed = scalar = 0
     if not lmap.scalar_type_names or params is None:
         return typed, scalar
-    for param in params.named_children:
+    for param in _parameter_nodes(params):
         if param.type in _NON_PARAMS or (type_node := _param_type(param)) is None:
             continue
         arity = _arity(param)
